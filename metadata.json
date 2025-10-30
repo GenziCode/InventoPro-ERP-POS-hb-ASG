@@ -1,0 +1,7 @@
+{
+  "name": "InventoPro ERP/POS AG",
+  "description": "InventoPro is a fully customizable ERP/POS system designed for any business — retail, wholesale, service, or distribution. It works online and offline, supports mobile and desktop, and adapts to your business needs through modules, roles, and AI-powered intelligence.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
