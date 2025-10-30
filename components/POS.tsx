@@ -3,9 +3,7 @@ import { mockInventory, mockCustomers } from '../services/mockData';
 import { InventoryItem, Customer, SaleItem } from '../types';
 import Card from './common/Card';
 import Icon from './common/Icon';
-
-// Declare Html5Qrcode at the component level
-declare var Html5Qrcode: any;
+import { Html5Qrcode } from 'html5-qrcode';
 
 const POS: React.FC = () => {
   const [cart, setCart] = useState<SaleItem[]>([]);
