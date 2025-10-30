@@ -1,19 +1,16 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { InventoryItem, Sale } from "../types";
 
-// IMPORTANT: This key is a placeholder and should be handled via environment variables in a real application.
-// The execution environment for this code is expected to have `process.env.API_KEY` pre-configured.
-const API_KEY = process.env.API_KEY;
-
-if (!API_KEY) {
-  console.warn("Gemini API key not found. AI features will be disabled.");
+// FIX: Switched from Vite's import.meta.env to process.env.API_KEY to align with Gemini API guidelines.
+// This resolves the TypeScript error regarding ImportMeta.
+if (!process.env.API_KEY) {
+  console.warn("Gemini API key not found. AI features will be disabled. Make sure to set API_KEY in your environment.");
 }
 
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const getDashboardInsights = async (inventory: InventoryItem[], sales: Sale[]): Promise<string> => {
-  if (!API_KEY) {
+  if (!process.env.API_KEY) {
     return "AI features are disabled because the API key is not configured.";
   }
 
@@ -28,7 +25,7 @@ export const getDashboardInsights = async (inventory: InventoryItem[], sales: Sa
   const prompt = `
     You are an expert ERP/POS system analyst for an auto parts store.
     Analyze the following real-time data and provide actionable business insights.
-    Be concise and use bullet points.
+    Be concise and use bullet points formatted as markdown.
 
     Current Inventory Status:
     ${inventorySummary}
