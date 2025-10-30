@@ -1,18 +1,14 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { InventoryItem, Sale } from "../types";
 
-// FIX: Switched from Vite's import.meta.env to process.env.API_KEY to align with Gemini API guidelines.
-// This resolves the TypeScript error regarding ImportMeta.
-if (!process.env.API_KEY) {
-  console.warn("Gemini API key not found. AI features will be disabled. Make sure to set API_KEY in your environment.");
-}
-
+// Fix: Adhering to @google/genai guidelines to use process.env.API_KEY directly for initialization.
+// The guidelines state to assume this variable is pre-configured and accessible in the execution context.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const getDashboardInsights = async (inventory: InventoryItem[], sales: Sale[]): Promise<string> => {
-  if (!process.env.API_KEY) {
-    return "AI features are disabled because the API key is not configured.";
-  }
+  // Fix: Removed conditional check for the 'ai' client. Per guidelines, we assume the API key is always present
+  // and the client is successfully initialized.
 
   const inventorySummary = inventory
     .map(item => `  - ${item.Name} (ID: ${item.ID}): ${item.Stock} in stock. Low stock level is ${item.LowLevel}.`)
