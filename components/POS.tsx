@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { mockInventory, mockCustomers } from '../services/mockData';
 import { InventoryItem, Customer, SaleItem } from '../types';
@@ -9,6 +10,7 @@ const POS: React.FC = () => {
   const [cart, setCart] = useState<SaleItem[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer>(mockCustomers[3]); // Default to Walk-in
   const [isScannerModalOpen, setScannerModalOpen] = useState(false);
+  const [isPaymentModalOpen, setPaymentModalOpen] = useState(false);
   const html5QrCodeRef = useRef<any>(null);
 
   const getPriceForCustomer = useCallback((item: InventoryItem, customer: Customer) => {
@@ -46,54 +48,31 @@ const POS: React.FC = () => {
       return;
     }
 
-    // Initialize the scanner
     const qrCodeScanner = new Html5Qrcode("qr-reader");
     html5QrCodeRef.current = qrCodeScanner;
 
-    const onScanSuccess = (decodedText: string, decodedResult: any) => {
+    const onScanSuccess = (decodedText: string) => {
         handleBarcodeScan(decodedText);
-        setScannerModalOpen(false); // Close modal on successful scan
-    };
-
-    const onScanFailure = (error: any) => {
-        // This callback is called frequently, so keep it minimal or for debug purposes.
-        // console.warn(`Code scan error = ${error}`);
+        setScannerModalOpen(false);
     };
     
-    const config = {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
-    };
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
     const startScanner = async () => {
         try {
-            const cameras = await Html5Qrcode.getCameras();
-            if (cameras && cameras.length > 0) {
-                const rearCamera = cameras.find(camera => 
-                    camera.label.toLowerCase().includes('back') || 
-                    camera.label.toLowerCase().includes('rear')
-                );
-                const cameraId = rearCamera ? rearCamera.id : cameras[0].id;
-                await qrCodeScanner.start(cameraId, config, onScanSuccess, onScanFailure);
-            } else {
-                // Fallback for devices that don't enumerate cameras, let browser decide
-                await qrCodeScanner.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure);
-            }
+            await qrCodeScanner.start({ facingMode: "environment" }, config, onScanSuccess, undefined);
         } catch (err) {
             console.error("Failed to start scanner:", err);
-            alert("Could not initialize the camera. Please check permissions and ensure a camera is connected.");
+            alert("Could not initialize the camera.");
             setScannerModalOpen(false);
         }
     };
     
     startScanner();
 
-    // Cleanup function to stop the scanner
     return () => {
         if (html5QrCodeRef.current?.isScanning) {
-             html5QrCodeRef.current.stop()
-                 .then(() => console.log("Scanner stopped successfully."))
-                 .catch((err: any) => console.error("Failed to stop scanner.", err));
+             html5QrCodeRef.current.stop().catch((err: any) => console.error("Failed to stop scanner.", err));
         }
     };
   }, [isScannerModalOpen, handleBarcodeScan]);
@@ -105,6 +84,13 @@ const POS: React.FC = () => {
       setCart(cart.map(item => item.product.ID === productId ? {...item, quantity} : item));
     }
   };
+  
+  const handleCompletePayment = (method: string) => {
+    console.log(`Payment completed with ${method}. Total: $${total.toFixed(2)}`);
+    alert(`Sale Complete! Total: $${total.toFixed(2)} paid by ${method}.`);
+    setCart([]);
+    setPaymentModalOpen(false);
+  }
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const tax = subtotal * 0.08;
@@ -112,7 +98,7 @@ const POS: React.FC = () => {
 
   return (
     <div className="space-y-6">
-       {isScannerModalOpen && (
+      {isScannerModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
             <div className="bg-white p-4 rounded-lg shadow-xl relative w-full max-w-md">
                  <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">Scan Barcode</h3>
@@ -123,13 +109,35 @@ const POS: React.FC = () => {
             </div>
         </div>
       )}
+      {isPaymentModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+            <Card className="w-full max-w-sm transform transition-all duration-300 animate-fade-in-scale">
+                <div className="flex justify-between items-center border-b pb-3 mb-4">
+                    <h2 className="text-xl font-semibold">Confirm Payment</h2>
+                    <button onClick={() => setPaymentModalOpen(false)} className="text-slate-500 hover:text-slate-800">
+                        <Icon name="close" className="w-6 h-6"/>
+                    </button>
+                </div>
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <p className="text-slate-500">Total Amount Due</p>
+                    <p className="text-4xl font-bold text-slate-800">${total.toFixed(2)}</p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4">
+                    <button onClick={() => handleCompletePayment('Card')} className="bg-blue-600 text-white p-3 rounded-lg font-semibold text-lg hover:bg-blue-700 transition">Pay with Card</button>
+                    <button onClick={() => handleCompletePayment('Cash')} className="bg-green-600 text-white p-3 rounded-lg font-semibold text-lg hover:bg-green-700 transition">Pay with Cash</button>
+                  </div>
+                </div>
+            </Card>
+        </div>
+      )}
       <h1 className="text-3xl font-bold text-slate-800">Point of Sale</h1>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
             <Card>
                 <div className="flex justify-between items-center">
                     <select
-                        className="p-2 border border-slate-300 rounded-md"
+                        className="p-2 border border-slate-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                         value={selectedCustomer.CustomerID}
                         onChange={e => setSelectedCustomer(mockCustomers.find(c => c.CustomerID === e.target.value)!)}
                     >
@@ -192,6 +200,7 @@ const POS: React.FC = () => {
                     </div>
                 </div>
                 <button 
+                    onClick={() => setPaymentModalOpen(true)}
                     disabled={cart.length === 0}
                     className="w-full mt-6 bg-green-600 text-white p-3 rounded-lg font-bold text-lg hover:bg-green-700 transition disabled:bg-slate-400"
                 >
